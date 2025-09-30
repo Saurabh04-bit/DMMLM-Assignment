@@ -1,27 +1,46 @@
 import pickle
-from flask import Flask, request, jsonify
 import numpy as np
-import joblib
+import pandas as pd
+from flask import Flask, request, jsonify
 
+# Initialize Flask app
 app = Flask(__name__)
 
-# Load the saved Random Forest model
-model = joblib.load('random_forest_model.pkl')
+# Load trained model
+with open("random_forest_model.pkl", "rb") as f:
+    model = pickle.load(f)
 
-@app.route('/predict', methods=['POST'])
+# Load dataset to get feature names
+data = pd.read_csv("winequality-red.csv")
+feature_names = list(data.columns[:-1])  # all except 'quality'
+
+@app.route("/")
+def home():
+    return {"message": "Wine Quality Prediction API is running!"}
+
+@app.route("/predict", methods=["POST"])
 def predict():
     try:
-        # Get the data from the request
-        data = request.get_json(force=True)
-        # Assuming the input data is a list of features in the same order as the training data
-        prediction = model.predict(np.array([data['features']]))
-        # Convert prediction to a standard Python type
-        output = int(prediction[0])
-        return jsonify(prediction=output)
-    except Exception as e:
-        return jsonify(error=str(e))
+        # Get JSON data
+        input_data = request.get_json()
 
-if __name__ == '__main__':
-    # This is for local development and testing.
-    # For production deployment, a production-ready WSGI server like Gunicorn is recommended.
+        # Ensure correct feature order
+        features = [input_data.get(feat, 0) for feat in feature_names]
+
+        # Convert to numpy array for prediction
+        features_array = np.array(features).reshape(1, -1)
+
+        # Predict using model
+        prediction = model.predict(features_array)[0]
+
+        return jsonify({
+            "input": input_data,
+            "predicted_quality": int(prediction)
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+if __name__ == "__main__":
     app.run(debug=True)
+
