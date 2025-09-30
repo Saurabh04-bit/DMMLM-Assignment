@@ -1,11 +1,10 @@
 import streamlit as st
 import pandas as pd
-import pickle
+import joblib   # use joblib instead of pickle
 
 # Load the trained Random Forest model
 model_filename = "random_forest_model.pkl"
-with open(model_filename, "rb") as file:
-    model = pickle.load(file)
+model = joblib.load(model_filename)
 
 # Define feature columns (based on winequality-red dataset)
 feature_columns = [
@@ -37,6 +36,7 @@ input_df = pd.DataFrame([input_data], columns=feature_columns)
 if st.button("Predict Wine Quality"):
     prediction = predict_wine_quality(input_df)
     st.success(f"Predicted Wine Quality Score: **{prediction[0]}**")
+
 
 
 
