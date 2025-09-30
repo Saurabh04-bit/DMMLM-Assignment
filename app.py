@@ -1,47 +1,42 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import joblib
-import sys, sklearn
+import pickle
 
-# --- Environment info ---
-st.sidebar.title("Environment Info")
-st.sidebar.write("**Python version:**", sys.version)
-st.sidebar.write("**scikit-learn version:**", sklearn.__version__)
-st.sidebar.write("**NumPy version:**", np.__version__)
-st.sidebar.write("**Pandas version:**", pd.__version__)
+# Load the trained Random Forest model
+model_filename = "random_forest_model.pkl"
+with open(model_filename, "rb") as file:
+    model = pickle.load(file)
 
-# --- Load trained Random Forest model ---
-model = joblib.load("random_forest_model.pkl")
+# Define feature columns (based on winequality-red dataset)
+feature_columns = [
+    'fixed acidity', 'volatile acidity', 'citric acid',
+    'residual sugar', 'chlorides', 'free sulfur dioxide',
+    'total sulfur dioxide', 'density', 'pH',
+    'sulphates', 'alcohol'
+]
 
-# --- Load dataset to get feature names ---
-data = pd.read_csv("winequality-red.csv")
-feature_names = list(data.columns[:-1])  # all except "quality"
+# Prediction function
+def predict_wine_quality(features):
+    prediction = model.predict(features)
+    return prediction
 
-st.title("🍷 Wine Quality Prediction App")
-st.write("Enter the wine's chemical properties to predict its quality score.")
+# Streamlit App UI
+st.title("🍷 Wine Quality Prediction")
+st.write("Enter the wine chemical properties to predict its quality (score 0-10).")
 
-# --- Input form ---
-input_data = {}
-with st.form("wine_form"):
-    for feat in feature_names:
-        val = st.number_input(
-            f"{feat}",
-            value=float(data[feat].mean()),
-            step=0.01
-        )
-        input_data[feat] = val
+# Collect user input
+input_data = []
+for col in feature_columns:
+    value = st.number_input(f"Enter {col}", min_value=0.0, step=0.1)
+    input_data.append(value)
 
-    submitted = st.form_submit_button("Predict Quality")
+# Convert to dataframe
+input_df = pd.DataFrame([input_data], columns=feature_columns)
 
-# --- Prediction ---
-if submitted:
-    features = [input_data[feat] for feat in feature_names]
-    features_array = np.array(features).reshape(1, -1)
-    prediction = model.predict(features_array)[0]
-
-    st.success(f"Predicted Wine Quality: **{int(prediction)}**")
-    st.write("🔎 Input Values:", input_data)
+# Predict button
+if st.button("Predict Wine Quality"):
+    prediction = predict_wine_quality(input_df)
+    st.success(f"Predicted Wine Quality Score: **{prediction[0]}**")
 
 
 
